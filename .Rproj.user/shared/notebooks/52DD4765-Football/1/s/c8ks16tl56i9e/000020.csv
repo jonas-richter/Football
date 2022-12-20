@@ -1,0 +1,7 @@
+"0","# get lineup for a match
+lineups = worldfootballR::fb_match_lineups(match_url = match_urls[1], time_pause = 2)
+"
+"2","Warning: Too Many Requests (RFC 6585) (HTTP 429)."
+"1","Lineups not available for https://fbref.com/en/matches/6a1c18c4/Eintracht-Frankfurt-Bayern-Munich-August-5-2022-Bundesliga"
+"1","
+"

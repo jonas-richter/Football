@@ -1,0 +1,90 @@
+library("worldfootballR")
+# get urls
+DE_urls = fb_league_urls(country = "DE", gender = "M", season_end_year = 2021, tier = '1st')
+# get urls
+DE_urls = fb_league_urls(country = "DEU", gender = "M", season_end_year = 2021, tier = '1st')
+# get urls
+DE_urls = fb_league_urls(country = "GER", gender = "M", season_end_year = 2021, tier = '1st')
+# get urls
+GER_urls = fb_league_urls(country = "GER", gender = "M", season_end_year = 2021, tier = '1st')
+GER_urls
+mapped_players <- player_dictionary_mapping()
+dplyr::glimpse(mapped_players)
+View(mapped_players)
+mapped_players$scouting_report =  sapply(mapped_players$UrlFBref, function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2))
+View(mapped_players)
+mapped_players$scouting_report =  sapply(mapped_players$UrlFBref, function(x) print(orldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2)))
+mapped_players$scouting_report =  sapply(mapped_players$UrlFBref, function(x) print(worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2)))
+scouting_report =  sapply(mapped_players$UrlFBref[1:10], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2))
+scouting_report =  sapply(mapped_players$UrlFBref[1], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2))
+View(scouting_report)
+scouting_report[4,]
+scouting_report[5,]
+scouting_report[1,]
+scouting_report =  sapply(mapped_players$UrlFBref[1], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "secondary", time_pause = 2))
+scouting_report[1,]
+scouting_report[3,]
+scouting_report[4,]
+scouting_report[5,]
+mapped_players$UrlFBref[1]
+worldfootballR::tm_player_bio(player_urls = mapped_players$UrlTmarkt[1])
+# this is how to get statistics on player from FBRef
+scouting_FB =  sapply(mapped_players$UrlFBref[1], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "secondary", time_pause = 2))
+rm(scouting_report)
+scouting_TM = worldfootballR::tm_player_bio(player_urls = mapped_players$UrlTmarkt[1])
+View(scouting_TM)
+library(dplyr)
+library(tidyverse)
+library("worldfootballR")
+library(tidyverse)
+library(dplyr)
+# get match URLs
+match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st")
+# get match URLs
+match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st", season_end_year = "2021")
+match_urls
+# get match URLs
+match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st", season_end_year = "2022")
+match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st", season_end_year = "2022")
+match_urls
+# get match URLs
+match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st", season_end_year = "2023")
+match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st", season_end_year = "2023")
+match_urls
+#
+worldfootballR::fb_match_lineups(match_url = match_urls[1], time_pause = 2)
+# get lineup for a match
+lineups = worldfootballR::fb_match_lineups(match_url = match_urls[1], time_pause = 2)
+lineups
+View(lineups)
+mapped_players$PlayerFBref
+lineups$Player_Name
+# get player URLs ONLY for players of a certain match
+mapped_players_match = mapped_players[lineups$Player_Name %in% mapped_players$PlayerFBref, ]
+table(lineups$Player_Name %in% mapped_players$PlayerFBref)
+# get player URLs ONLY for players of a certain match
+mapped_players_match = mapped_players[mapped_players$PlayerFBref %in% lineups$Player_Name, ]
+View(mapped_players_match)
+# get statistics of players from certain match
+scouting_FB =  sapply(mapped_players_match$UrlFBref, function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "secondary", time_pause = 2))
+# get statistics of players from certain match
+scouting_FB =  sapply(mapped_players_match$UrlFBref, function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "secondary", time_pause = 1))
+# statistics on player from TM
+scouting_TM = sapply(mapped_players_match$UrlTmarkt, function(x) worldfootballR::tm_player_bio(player_urls = x))
+View(scouting_TM)
+scouting_TM[["https://www.transfermarkt.com/almamy-toure/profil/spieler/216181"]]
+# statistics of Players from TM
+scouting_TM = sapply(mapped_players_match$UrlTmarkt, function(x) data.frame(worldfootballR::tm_player_bio(player_urls = x)))
+View(scouting_TM)
+scouting_TM[["https://www.transfermarkt.com/almamy-toure/profil/spieler/216181"]]
+View(scouting_TM[["https://www.transfermarkt.com/almamy-toure/profil/spieler/216181"]])
+# combine data frames
+scouting_TM_c = plyr::rbind.fill(scouting_TM)
+View(scouting_TM_c)
+View(scouting_FB)
+# get statistics of players from certain match
+scouting_FB =  sapply(mapped_players_match$UrlFBref[1:2], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "secondary", time_pause = 2))
+# get statistics of players from certain match
+scouting_FB =  sapply(mapped_players_match$UrlFBref[1:2], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2))
+# get statistics of players from certain match
+scouting_FB =  sapply(mapped_players_match$UrlFBref[1:2], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 5))
