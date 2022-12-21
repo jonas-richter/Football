@@ -66,6 +66,11 @@ scouting_TM_c = select(scouting_TM_c, c("Player", "age", "height", "current_club
 # join TM and FBRef info
 scouting_FB_TM = left_join(scouting_FB_365, scouting_TM_c)
 
+# pattern matching to find similar names
+a = sapply(scouting_FB_365$Player, function(x) 
+  sapply(scouting_TM_c$Player, function(y) agrepl(x, y , max.distance=0.5)))
+
+
 # make age numeric
 scouting_FB_TM$age <- sapply(scouting_FB_TM$age, as.numeric)
 
@@ -92,6 +97,31 @@ group = ungroup(group)
 
 # this is how to make the df wide (later)
 #group_wide = pivot_wider(data = group, names_from = c(current_club, Versus, Statistic), values_from = c(4:ncol(group)))
+```
+```{r}
+library(dplyr)
+
+desired <- NULL
+grp <- 1
+special <- function(x, y, grp) {
+                if (nrow(y) < 1) {        # if y is empty return data
+                     return(x)
+                } else {
+                     similar <- agrepl(y$s[1], y$s)      # find similar occurring strings
+                     x <- rbind(x, y[similar,] %>% mutate(s=head(s,1)) %>% mutate(grp=grp))
+                     y <- setdiff(y, y[similar,])
+                     special(x, y, grp+1)
+                }
+           }
+
+n = c(2, 3, 5)
+s = c("ABBA", "ABA", "STING")
+b = c(TRUE, "STING", "STRING")
+df = data.frame(n,s,b)
+
+desired <- special(desired,df,grp)
+
+
 ```
 
 

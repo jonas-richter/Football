@@ -1,0 +1,4 @@
+"0","# join TM and FBRef info
+scouting_FB_TM = left_join(scouting_FB_365, scouting_TM_c)
+"
+"2","Joining, by = ""Player"""
