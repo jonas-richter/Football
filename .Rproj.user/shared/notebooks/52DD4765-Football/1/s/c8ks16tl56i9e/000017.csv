@@ -1,0 +1,4 @@
+"0","match_info = as.vector(httr::GET(worldfootballR::fb_match_results(country = ""GER"", gender = ""M"", tier = ""1st"", season_end_year = ""2023"")))
+"
+"2","Error in parse_url(url) : length(url) == 1 is not TRUE
+"

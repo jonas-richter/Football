@@ -1,5 +1,0 @@
-"0","# get statistics of players from certain match
-scouting_FB =  sapply(mapped_players_match$UrlFBref[1:2], function(x) worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = ""primary"", time_pause = 5))
-"
-"2","Error in open.connection(x, ""rb"") : HTTP error 429.
-"

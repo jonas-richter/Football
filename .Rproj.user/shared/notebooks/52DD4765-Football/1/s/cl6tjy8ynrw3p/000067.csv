@@ -1,0 +1,11 @@
+"0","group_wide = pivot_wider(data = group, names_from = c(current_club, Versus, Statistic), values_from = c(4:ncol(scouting_FB_TM_aggregated)))
+"
+"1","[1m[33mError[39m in `build_wider_spec()`:[22m
+[33m![39m Can't subset columns past the end.
+[38;5;255m[36mℹ[38;5;255m Locations 11 and 12 don't exist.
+[36mℹ[38;5;255m There are only 10 columns.[39m
+Backtrace:
+[90m 1. [39m[1mtidyr[22m::pivot_wider(...)
+[90m 2. [39mtidyr:::pivot_wider.data.frame(...)
+[90m 3. [39m[1m[94mtidyr::build_wider_spec([39m[22m...[1m[94m)[39m[22m
+"

@@ -1,11 +1,6 @@
 "0","# get player URLs ONLY for players of a certain match
-mapped_players_match = mapped_players[lineups$Player_Name %in% mapped_players$PlayerFBref, ]
+mapped_players_match = mapped_players[mapped_players$PlayerFBref %in% lineups[lineups$Min > 0]$Player_Name, ]
 "
-"1","[1m[33mError[39m in `vectbl_as_row_location()`:[22m
-[33m![39m Can't subset rows with `lineups$Player_Name %in% mapped_players$PlayerFBref`.
-[31m✖[39m Logical subscript `lineups$Player_Name %in% mapped_players$PlayerFBref` must be size 1 or 6612, not 40.
-Backtrace:
-[90m  1. [39m...[]
-[90m 11. [39m[1mvctrs[22m (local) `<fn>`()
-[90m 12. [39mvctrs:::stop_indicator_size(...)
+"2","Error in `[.data.frame`(lineups, lineups$Min > 0) : 
+  undefined columns selected
 "
