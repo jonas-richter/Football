@@ -1,6 +1,0 @@
-"0","# get player URLs ONLY for players of a certain match
-mapped_players_match = mapped_players[mapped_players$PlayerFBref %in% lineups[lineups$Min > 0]$Player_Name, ]
-"
-"2","Error in `[.data.frame`(lineups, lineups$Min > 0) : 
-  undefined columns selected
-"

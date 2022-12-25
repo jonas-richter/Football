@@ -1,9 +1,0 @@
-"0","agrepl(c(""a"",""b"",""c""),c(""b"",""a"",""c""),max.distance=0.5)
-"
-"2","Warning: argument 'pattern' has length > 1 and only the first element will be used"
-"1","[1]"
-"1"," TRUE"
-"1"," TRUE"
-"1"," TRUE"
-"1","
-"
