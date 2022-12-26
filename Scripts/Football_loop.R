@@ -190,3 +190,42 @@ print(stringr::str_remove(z, pattern = ".*/"))
                    },
 mc.cores = 2)
 
+# read data
+temp = list.files(path = "../Output/Training_data/" ,pattern="*.csv")
+training = lapply(paste0("../Output/Training_data/", temp), read.csv)
+
+# combine data
+training_c = plyr::rbind.fill(training)
+
+# drop unnecessary cols
+training_c = dplyr::select(.data = training_c, -c("X", "MatchURL"))
+
+# convert Outcome to factor
+training_c$Outcome = as.factor(training_c$Outcome)
+
+# select randomly 70% of rows
+training_train = BR16_rf[sample(nrow(training_c), round(0.7*nrow(training_c))), ]
+subset = rownames(BR16_rf) %in% rownames(BR16_train)
+training_test = training_c[subset == FALSE,]
+
+# how balanced is the train and test set?
+table(training_train$Outcome)
+table(training_test$Outcome)
+
+# train
+Outcome = training_train$Outcome
+Outcome_model = randomForest(x = dplyr::select(training_train, -"Outcome"), y = Outcome)
+# predict
+predictions <- predict(Outcome_model, training_test)
+
+# results
+result = data.frame(Outcome = training_test$Outcome, prediction = predictions)
+table(result$Outcome == result$prediction)
+accuracy = mean(result$Outcome == result$prediction)
+accuracy
+
+# important features for prediction
+#Conditional=True, adjusts for correlations between predictors.
+i_scores <- caret::varImp(Outcome_model, conditional=TRUE)
+i_scores_sorted = i_scores[order(-i_scores$Overall), , drop = FALSE]
+
