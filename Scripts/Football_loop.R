@@ -1,121 +1,103 @@
----
-title: "Football_script"
-output: html_document
-date: "2022-12-20"
----
-
-```{r, include = FALSE}
 library(worldfootballR)
 library(tidyverse)
 library(dplyr)
 library(parallel)
-```
 
 ## Leagure URLs
-```{r}
+
 ## get match URLs
 # fix if error
 #match_urls = as.vector(httr::GET(worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st", season_end_year = "2023")[1])$url)
 match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier = "1st", season_end_year = "2023")
- 
+
+
+################################################### START LOOP
+parallel::mclapply(match_urls,
+                   function(z) {
+
+
 # get lineup for matches
-######## PARALLELIZATION DOESNT WORK BECAUSE SERVER DOESN'T ALLOW THAT MANY REQUESTS
-lineups = parallel::mclapply(match_urls,
-                             function(x) {
-                               Sys.sleep(2)
-                               worldfootballR::fb_match_lineups(match_url = x, time_pause = 2)
-                               },
-                             mc.cores = parallel::detectCores()-1)
-######## I WILL TRY TO FIND A FIX BUT FOR NOW REMOVE EMPTY DFs
-# get ID of first missing lineup
-apply(similar_names,1, function(x) min(which(x == TRUE)))
-missing_lineup = sapply(lineups, function(x) dim(x)[1] > 0)
-first_missing = min(which(missing_lineup == FALSE)) - 1
-# subset to data frames which do contain information
-lineups_full = lineups[1:first_missing]
+lineups = worldfootballR::fb_match_lineups(match_url = z, time_pause = 2)
 
 # match results
 match_info = worldfootballR::fb_match_results(country = "GER", gender = "M", tier = "1st", season_end_year = "2023")
-# make in match_info some cols numeric
+
+# make in match_info the Wk col numeric
 match_info[,c("Wk", "HomeGoals", "Home_xG", "AwayGoals", "Away_xG")] <- sapply(match_info[,c("Wk", "HomeGoals", "Home_xG", "AwayGoals", "Away_xG")], as.numeric)
+
 # match outcome column
 match_info$Outcome = ifelse(match_info$HomeGoals > match_info$AwayGoals, "win",
-           ifelse(match_info$HomeGoals < match_info$AwayGoals, "loss", "draw"))
+                            ifelse(match_info$HomeGoals < match_info$AwayGoals, "loss", "draw"))
+
 # subset to past matches
 match_info_past = match_info[!as.vector(sapply(match_info$HomeGoals,is.na)), ]
-```
+
 
 ## Player URLs
-```{r}
+
 # get player urls from ALL players
-mapped_players <- player_dictionary_mapping()
+mapped_players = player_dictionary_mapping()
 
 # get player URLs ONLY for players of a certain match
-# players must have played at least 30 minutes
-#mapped_players_match = lapply(lineups_full, function(x) mapped_players[mapped_players$PlayerFBref %in% x[x$Min > 30,]$Player_Name, ])
-mapped_players_match = parallel::mclapply(lineups_full,
-                             function(x) {
-                               Sys.sleep(2)
-                               mapped_players[mapped_players$PlayerFBref %in% x[x$Min > 30,]$Player_Name, ]
-                               },
-                             mc.cores = parallel::detectCores()-1)
-```
+mapped_players_match = mapped_players[mapped_players$PlayerFBref %in% lineups[lineups$Min > 30,]$Player_Name, ] # players must have played at least 30 minutes
+
 
 ## Player statistics
 ### Player statistics FBRef
-```{r}
+
 # define function to scrape data from FBRef and skip if error occurs
 scouting_FB_fun = function(x) {
   return(tryCatch(worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2), error=function(e) NULL))
 }
-# get statistics of players from certain match  
-#scouting_FB =  lapply(mapped_players_match$UrlFBref, scouting_FB_fun)
-scouting_FB = parallel::mclapply(mapped_players_match,
-                               function(x) {
-                               Sys.sleep(2)
-                               lapply(x$UrlFBref, scouting_FB_fun)
-                               },
-                             mc.cores = parallel::detectCores()-1)
+
+# get statistics of players from certain match
+## TAKES A LOT OF TIME
+scouting_FB = lapply(mapped_players_match$UrlFBref, scouting_FB_fun)
 
 # remove empty data frames from list (from players without FBRef scouting report)
-#scouting_FB_clean = scouting_FB[sapply(scouting_FB, function(x) !is.null(dim(x)[1]))]
-scouting_FB_clean = lapply(scouting_FB, function(x) x[sapply(x, function(x) !is.null(dim(x)[1]))])
+scouting_FB_clean = scouting_FB[sapply(scouting_FB, function(x) !is.null(dim(x)[1]))]
 
 # combine data frames
-#scouting_FB_c = plyr::rbind.fill(scouting_FB_clean)
-scouting_FB_c = lapply(scouting_FB_clean, function(x) plyr::rbind.fill(x))
+scouting_FB_c = plyr::rbind.fill(scouting_FB_clean)
 
 # keep only information on last 365 days
 scouting_FB_365 = scouting_FB_c %>% filter(scouting_period == "Last 365 Days")
 
 # filter out some cols
 scouting_FB_365 = select(scouting_FB_365, -c("StatGroup", "scouting_period"))
-```
+
 
 ### Player statistics TM
-```{r}
+
 # statistics of Players from TM
 scouting_TM = sapply(mapped_players_match$UrlTmarkt, function(x) data.frame(worldfootballR::tm_player_bio(player_urls = x)))
+
 # combine data frames
 scouting_TM_c = plyr::rbind.fill(scouting_TM)
+
 # rename player col
 names(scouting_TM_c)[names(scouting_TM_c) == 'player_name'] <- 'Player'
+
 # drop uninformative cols
 scouting_TM_c = dplyr::select(scouting_TM_c, c("Player", "age", "height", "current_club", "player_valuation", "max_player_valuation"))
-```
+
 
 ### Player statistics: join different data sources (FBRef and TM)
-```{r}
+
 ## Solve problem that some players are named slightly different across data bases
 # pattern matching to find similar names between data sources
-similar_names = sapply(scouting_FB_365$Player, function(x) 
+similar_names = sapply(scouting_FB_365$Player, function(x)
   sapply(scouting_TM_c$Player, function(y) agrepl(x, y , max.distance=0.1)))
+
 # find first true instance
 similar_names_match = apply(similar_names,1, function(x) min(which(x == TRUE)))
+
 # get colnames of first true instance
 FBRef_Player_names = as.vector(colnames(similar_names[,as.vector(similar_names_match)]))
+
 # replace TM player names with FBRef player names
 scouting_TM_c$Player = FBRef_Player_names
+
 # drop row in scouting_TM_c when NA in Player column
 scouting_TM_c = scouting_TM_c[!as.vector(sapply(scouting_TM_c$Player,is.na)), ]
 
@@ -124,43 +106,39 @@ scouting_FB_TM = left_join(scouting_FB_365, scouting_TM_c)
 
 # Remove players which had no proper match between TM and FBRef
 scouting_FB_TM = na.omit(scouting_FB_TM)
-# Remove players whose current club is a minority team
+
+## Remove players whose current club is a minority team
 # retrieve team names from current match
 club_filter = names(sort(table(scouting_FB_TM$current_club), decreasing = T))[1:2]
+
 # drop players which are not longer players of clubs that participated in a match
 scouting_FB_TM_clubs = scouting_FB_TM[scouting_FB_TM$current_club %in% club_filter, ]
-```
+
 
 ## Pivot
-```{r}
+
 # make age numeric
-scouting_FB_TM_clubs$age <- sapply(scouting_FB_TM_clubs$age, as.numeric)
+scouting_FB_TM_clubs$age = sapply(scouting_FB_TM_clubs$age, as.numeric)
 
 # group by club, by age and by Statistic
-group = scouting_FB_TM_clubs %>% 
-  dplyr::group_by(current_club, Versus, Statistic) %>% 
+group = scouting_FB_TM_clubs %>%
+  dplyr::group_by(current_club, Versus, Statistic) %>%
   dplyr::summarise(Per90_mean = mean(Per90),
-            Percentile_mean = mean(Percentile),
-            BasedOnMinutes_mean = mean(BasedOnMinutes),
-            age_mean = mean(age),
-            height_mean = mean(height),
-            player_valuation_mean = mean(player_valuation),
-            max_player_valuation_mean = mean(max_player_valuation))
+                   Percentile_mean = mean(Percentile),
+                   BasedOnMinutes_mean = mean(BasedOnMinutes),
+                   age_mean = mean(age),
+                   height_mean = mean(height),
+                   player_valuation_mean = mean(player_valuation),
+                   max_player_valuation_mean = mean(max_player_valuation))
 group = ungroup(group)
 
-# this is how to make the df wide (later)
+# this is how to make the df wide
 group_wide = pivot_wider(data = group, names_from = c(Versus, Statistic), values_from = c(4:ncol(group)))
 
-# add some further club statistics (maybe last couple of games, general stuff like posession,...)
 
-# compute ration home/away team
-
-# add ground truth (who won --> maybe also how high)
-
-```
 
 ## Team statistics
-```{r}
+
 # get statistics
 team_stat = worldfootballR::fb_season_team_stats(country = "GER", gender = "M", season_end_year = "2023", tier = "1st", time_pause = 2, stat_type = "standard")
 
@@ -169,12 +147,15 @@ team_stat = team_stat[team_stat$Team_or_Opponent == "team", ]
 
 ## Solve problem that some teams are named slightly different across data bases
 # pattern matching to find similar names between data sources
-similar_team_names = sapply(team_stat$Squad, function(x) 
+similar_team_names = sapply(team_stat$Squad, function(x)
   sapply(group_wide$current_club, function(y) agrepl(x, y , max.distance=0.3)))
+
 # find first true instance
 similar_teams_match = apply(similar_team_names,1, function(x) min(which(x == TRUE)))
+
 # get colnames of first true instance
 FBRef_team_names = as.vector(colnames(similar_team_names[,as.vector(similar_teams_match)]))
+
 # replace TM player names with FBRef player names
 group_wide$Squad = FBRef_team_names
 
@@ -187,7 +168,7 @@ group_wide_team$Home = ifelse(match_info_past[1,]$Home == group_wide_team$Squad,
 # drop first 6 cols
 group_wide_team_num = group_wide_team[,-c(1:6)]
 
-# make all cols num except the last 
+# make all cols num except the last
 group_wide_team_num[,c(1:(ncol(group_wide_team_num)-1))] <- sapply(group_wide_team_num[,c(1:(ncol(group_wide_team_num)-1))], as.numeric)
 
 # divide row with Home == "yes" by row with Home == "no"
@@ -195,33 +176,17 @@ division = group_wide_team_num[which(group_wide_team_num$Home == "yes"),c(1:(nco
 
 # add GT
 division$Outcome = match_info_past$Outcome[1]
-```
 
+# add url as identifier
+division$MatchURL = z
 
-```{r}
-######### INCOMPLETE
-## collect information on performance in past x games
-# get results of team 1 from last 5, 3, 1 matches
-match_info_past_team1 = apply(match_info_past[,c("Home", "Away")], 1, function(x) x == group_wide_team$Squad[1])
-# find rows in which team1 played
-matchID_team1 = which(apply(match_info_past_team1,2,function(x) sum(x) > 0))
-# subset match info by team1 games
-match_info_subset1 = match_info_past[matchID_team1,]
-#
-match_info_subset1_home = match_info_subset1[match_info_subset1$Home %in% group_wide_team$Squad[1],]
-match_info_subset1_away = match_info_subset1[match_info_subset1$Away %in% group_wide_team$Squad[1],]
-# home performance
-match_info_subset1_home$Points = ifelse(match_info_subset1_home$HomeGoals > match_info_subset1_home$AwayGoals, 3,
-           ifelse(match_info_subset1_home$HomeGoals < match_info_subset1_home$AwayGoals, 0, 1))
-# away performance
-match_info_subset1_away$Points = ifelse(match_info_subset1_away$HomeGoals < match_info_subset1_away$AwayGoals, 3,
-           ifelse(match_info_subset1_away$HomeGoals > match_info_subset1_away$AwayGoals, 0, 1))
-# bind rows
-match_info_subset1_c = bind_rows(match_info_subset1_home,match_info_subset1_away)
-```
+# write df
+write.csv(x = division, file = paste0("../Output/Training_data/", stringr::str_remove(z, pattern = ".*/"), ".csv"))
 
+# print some output
+print(stringr::str_remove(z, pattern = ".*/"))
 
-
-
-
+################################################### END LOOP
+                   },
+mc.cores = 2)
 
