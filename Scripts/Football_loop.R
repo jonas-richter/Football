@@ -352,22 +352,34 @@ training_train = training_c[sample(nrow(training_c), round(0.7*nrow(training_c))
 subset = rownames(training_c) %in% rownames(training_train)
 training_test = training_c[subset == FALSE,]
 
-# impute missing values??
-#na.action = na.roughfix
-#https://stackoverflow.com/questions/8370455/how-to-use-random-forests-in-r-with-missing-values
+## impute missing values
+# train
+if(any(apply(training_train, 2, function(x) is.na(x)))){
+  Outcome = training_train$Outcome
+  training_train_impute = randomForest::rfImpute(training_train, y = Outcome)
+} else {
+  training_train_impute = training_train
+}
+# test
+if(any(apply(training_test, 2, function(x) is.na(x)))){
+  Outcome = training_test$Outcome
+  training_test_impute = randomForest::rfImpute(training_test, y = Outcome)
+} else {
+  training_test_impute = training_test
+}
 
 # how balanced is the train and test set?
-table(training_train$Outcome)
-table(training_test$Outcome)
+table(training_train_impute$Outcome)
+table(training_test_impute$Outcome)
 
 # train
-Outcome = training_train$Outcome
-Outcome_model = randomForest(x = dplyr::select(training_train, -"Outcome"), y = Outcome)
+Outcome = training_train_impute$Outcome
+Outcome_model = randomForest(x = dplyr::select(training_train_impute, -"Outcome"), y = Outcome)
 # predict
-predictions <- predict(Outcome_model, training_test)
+predictions <- predict(Outcome_model, training_test_impute)
 
 # results
-result = data.frame(Outcome = training_test$Outcome, prediction = predictions)
+result = data.frame(Outcome = training_test_impute$Outcome, prediction = predictions)
 table(result$Outcome == result$prediction)
 accuracy = mean(result$Outcome == result$prediction)
 accuracy
@@ -376,4 +388,3 @@ accuracy
 #Conditional=True, adjusts for correlations between predictors.
 i_scores <- caret::varImp(Outcome_model, conditional=TRUE)
 i_scores_sorted = i_scores[order(-i_scores$Overall), , drop = FALSE]
-
