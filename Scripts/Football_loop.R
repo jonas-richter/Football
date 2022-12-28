@@ -12,7 +12,7 @@ match_urls = worldfootballR::fb_match_urls(country = "GER", gender = "M", tier =
 
 
 ################################################### START LOOP
-parallel::mclapply(match_urls,
+lapply(match_urls,
                    function(z) {
 
 
@@ -22,12 +22,19 @@ lineups = worldfootballR::fb_match_lineups(match_url = z, time_pause = 2)
 # match results
 match_info = worldfootballR::fb_match_results(country = "GER", gender = "M", tier = "1st", season_end_year = "2023")
 
+# Rename Borussia Mönchengladbach (if present)
+match_info = data.frame(lapply(match_info, function(x) {
+                     gsub("M'Gladbach", "Mönchengladbach", x)
+                 }))
+
 # make in match_info the Wk col numeric
 match_info[,c("Wk", "HomeGoals", "Home_xG", "AwayGoals", "Away_xG")] <- sapply(match_info[,c("Wk", "HomeGoals", "Home_xG", "AwayGoals", "Away_xG")], as.numeric)
 
-# match outcome column
+# make outcome column
 match_info$Outcome = ifelse(match_info$HomeGoals > match_info$AwayGoals, "win",
                             ifelse(match_info$HomeGoals < match_info$AwayGoals, "loss", "draw"))
+# make numeric outcome column
+match_info = mutate(.data = match_info, Score = HomeGoals - AwayGoals)
 
 # subset to past matches
 match_info_past = match_info[!as.vector(sapply(match_info$HomeGoals,is.na)), ]
@@ -145,10 +152,13 @@ team_stat = worldfootballR::fb_season_team_stats(country = "GER", gender = "M", 
 # filter out opponent data
 team_stat = team_stat[team_stat$Team_or_Opponent == "team", ]
 
+# Rename Borussia Mönchengladbach (if present)
+team_stat$Squad[team_stat$Squad == "M'Gladbach"] <- "Mönchengladbach"
+
 ## Solve problem that some teams are named slightly different across data bases
 # pattern matching to find similar names between data sources
 similar_team_names = sapply(team_stat$Squad, function(x)
-  sapply(group_wide$current_club, function(y) agrepl(x, y , max.distance=0.3)))
+  sapply(group_wide$current_club, function(y) agrepl(x, y , max.distance=0.2)))
 
 # find first true instance
 similar_teams_match = apply(similar_team_names,1, function(x) min(which(x == TRUE)))
@@ -160,53 +170,191 @@ FBRef_team_names = as.vector(colnames(similar_team_names[,as.vector(similar_team
 group_wide$Squad = FBRef_team_names
 
 # join team stats to group_wide
-group_wide_team = dplyr::left_join(team_stat, group_wide) %>% na.omit
+group_wide_team = dplyr::left_join(group_wide, team_stat)
 
 # add H/A
-group_wide_team$Home = ifelse(match_info_past[1,]$Home == group_wide_team$Squad, "yes", "no") #hier muss dann halt gelooped werden anstelle von der 1
+group_wide_team$Home = ifelse(match_info_past[which(match_info_past$MatchURL %in% z),]$Home == group_wide_team$Squad, 1, 2)
 
-# drop first 6 cols
-group_wide_team_num = group_wide_team[,-c(1:6)]
+
+### TEAM 1 INFO
+match_info_past_team1 = apply(match_info_past[,c("Home", "Away")], 1, function(x) x == group_wide_team$Squad[1])
+
+# find rows in which team1 played
+matchID_team1 = which(apply(match_info_past_team1,2,function(x) sum(x) > 0))
+
+# subset match info by team1 games
+match_info_subset1 = match_info_past[matchID_team1,]
+
+# split in home and away
+match_info_subset1_home = match_info_subset1[match_info_subset1$Home %in% group_wide_team$Squad[1],]
+match_info_subset1_away = match_info_subset1[match_info_subset1$Away %in% group_wide_team$Squad[1],]
+
+# home performance
+match_info_subset1_home$Points = ifelse(match_info_subset1_home$HomeGoals > match_info_subset1_home$AwayGoals, 3,
+                                        ifelse(match_info_subset1_home$HomeGoals < match_info_subset1_home$AwayGoals, 0, 1))
+match_info_subset1_home = match_info_subset1_home[order(as.Date(match_info_subset1_home$Date, format="%Y-%m-%d")),]
+
+# away performance
+match_info_subset1_away$Points = ifelse(match_info_subset1_away$HomeGoals < match_info_subset1_away$AwayGoals, 3,
+                                        ifelse(match_info_subset1_away$HomeGoals > match_info_subset1_away$AwayGoals, 0, 1))
+match_info_subset1_away = match_info_subset1_away[order(as.Date(match_info_subset1_away$Date, format="%Y-%m-%d")),]
+
+# bind rows
+match_info_subset1_c = bind_rows(match_info_subset1_home,match_info_subset1_away)
+match_info_subset1_c = match_info_subset1_c[order(as.Date(match_info_subset1_c$Date, format="%Y-%m-%d")),]
+
+# add points
+team1_info = data.frame(Squad = group_wide_team$Squad[1],
+                        Acc_points = sum(match_info_subset1_c$Points),
+                        Acc_points_away = sum(match_info_subset1_away$Points),
+                        Acc_points_home = sum(match_info_subset1_home$Points),
+                        Last_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                          NA
+                        } else {
+                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
+                        },
+                        Last_2_match = if(which(match_info_subset1_c$MatchURL == z) <= 2) {
+                          NA
+                        } else {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
+                        },
+                        Last_3_match = if(which(match_info_subset1_c$MatchURL == z) <= 3) {
+                          NA
+                        } else {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"])
+
+                        },
+                        Last_4_match = if(which(match_info_subset1_c$MatchURL == z) <= 4) {
+                          NA
+                        } else {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 4, "Points"])
+
+                        }
+)
+
+### TEAM 2 INFO
+match_info_past_team2 = apply(match_info_past[,c("Home", "Away")], 1, function(x) x == group_wide_team$Squad[2])
+
+# find rows in which team2 played
+matchID_team2 = which(apply(match_info_past_team2,2,function(x) sum(x) > 0))
+
+# subset match info by team2 games
+match_info_subset2 = match_info_past[matchID_team2,]
+
+# split in home and away
+match_info_subset2_home = match_info_subset2[match_info_subset2$Home %in% group_wide_team$Squad[2],]
+match_info_subset2_away = match_info_subset2[match_info_subset2$Away %in% group_wide_team$Squad[2],]
+
+# home performance
+match_info_subset2_home$Points = ifelse(match_info_subset2_home$HomeGoals > match_info_subset2_home$AwayGoals, 3,
+                                        ifelse(match_info_subset2_home$HomeGoals < match_info_subset2_home$AwayGoals, 0, 1))
+match_info_subset2_home = match_info_subset2_home[order(as.Date(match_info_subset2_home$Date, format="%Y-%m-%d")),]
+
+# away performance
+match_info_subset2_away$Points = ifelse(match_info_subset2_away$HomeGoals < match_info_subset2_away$AwayGoals, 3,
+                                        ifelse(match_info_subset2_away$HomeGoals > match_info_subset2_away$AwayGoals, 0, 1))
+match_info_subset2_away = match_info_subset2_away[order(as.Date(match_info_subset2_away$Date, format="%Y-%m-%d")),]
+
+# bind rows
+match_info_subset2_c = bind_rows(match_info_subset2_home,match_info_subset2_away)
+match_info_subset2_c = match_info_subset2_c[order(as.Date(match_info_subset2_c$Date, format="%Y-%m-%d")),]
+
+# add points
+team2_info = data.frame(Squad = group_wide_team$Squad[2],
+                        Acc_points = sum(match_info_subset2_c$Points),
+                        Acc_points_away = sum(match_info_subset2_away$Points),
+                        Acc_points_home = sum(match_info_subset2_home$Points),
+                        Last_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                          NA
+                        } else {
+                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
+                        },
+                        Last_2_match = if(which(match_info_subset2_c$MatchURL == z) <= 2) {
+                          NA
+                        } else {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
+                        },
+                        Last_3_match = if(which(match_info_subset2_c$MatchURL == z) <= 3) {
+                          NA
+                        } else {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"])
+
+                        },
+                        Last_4_match = if(which(match_info_subset2_c$MatchURL == z) <= 4) {
+                          NA
+                        } else {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 4, "Points"])
+
+                        }
+)
+# combine
+team_info = rbind(team1_info, team2_info)
+
+# join with group_wide_team
+group_wide_team_performance = dplyr::left_join(team_info, group_wide_team)
+
+# drop unnessecary cols
+group_wide_team_num = dplyr::select(group_wide_team_performance, -c("current_club", "Squad", "Competition_Name", "Gender", "Country", "Season_End_Year", "Team_or_Opponent"))
 
 # make all cols num except the last
-group_wide_team_num[,c(1:(ncol(group_wide_team_num)-1))] <- sapply(group_wide_team_num[,c(1:(ncol(group_wide_team_num)-1))], as.numeric)
+group_wide_team_num <- sapply(group_wide_team_num, as.numeric)
 
-# divide row with Home == "yes" by row with Home == "no"
-division = group_wide_team_num[which(group_wide_team_num$Home == "yes"),c(1:(ncol(group_wide_team_num)-1))]/group_wide_team_num[which(group_wide_team_num$Home == "no"),c(1:(ncol(group_wide_team_num)-1))]
+# add small constant to all values to make sure that no divisions of 0 cause errors
+group_wide_team_num_constant = group_wide_team_num
+group_wide_team_num_constant = apply(group_wide_team_num, 2, function(x) x + 0.01)
+
+# divide row with Home == 1 by row with Home == 2
+division = group_wide_team_num_constant[which(group_wide_team_num_constant$Home == 1),]/group_wide_team_num_constant[which(group_wide_team_num_constant$Home == 2),]
 
 # add GT
-division$Outcome = match_info_past$Outcome[1]
+division$Outcome = match_info_past$Outcome[which(match_info_past$MatchURL %in% z)]
+division$Score = match_info_past$Score[which(match_info_past$MatchURL %in% z)]
 
 # add url as identifier
 division$MatchURL = z
 
 # write df
-write.csv(x = division, file = paste0("../Output/Training_data/", stringr::str_remove(z, pattern = ".*/"), ".csv"))
+write.csv(x = division, file = paste0("./Output/Training_data/", stringr::str_remove(z, pattern = ".*/"), ".csv"))
 
 # print some output
 print(stringr::str_remove(z, pattern = ".*/"))
 
 ################################################### END LOOP
-                   },
-mc.cores = 2)
+                   })
 
 # read data
-temp = list.files(path = "../Output/Training_data/" ,pattern="*.csv")
-training = lapply(paste0("../Output/Training_data/", temp), read.csv)
+temp = list.files(path = "./Output/Training_data/" ,pattern="*.csv")
+training = lapply(paste0("./Output/Training_data/", temp), read.csv)
 
 # combine data
 training_c = plyr::rbind.fill(training)
 
 # drop unnecessary cols
-training_c = dplyr::select(.data = training_c, -c("X", "MatchURL"))
+training_c = dplyr::select(.data = training_c, -c("X", "MatchURL", "Score"))
 
 # convert Outcome to factor
 training_c$Outcome = as.factor(training_c$Outcome)
 
 # select randomly 70% of rows
-training_train = BR16_rf[sample(nrow(training_c), round(0.7*nrow(training_c))), ]
-subset = rownames(BR16_rf) %in% rownames(BR16_train)
+training_train = training_c[sample(nrow(training_c), round(0.7*nrow(training_c))), ]
+subset = rownames(training_c) %in% rownames(training_train)
 training_test = training_c[subset == FALSE,]
+
+# impute missing values??
+#na.action = na.roughfix
+#https://stackoverflow.com/questions/8370455/how-to-use-random-forests-in-r-with-missing-values
 
 # how balanced is the train and test set?
 table(training_train$Outcome)
