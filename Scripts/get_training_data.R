@@ -354,22 +354,28 @@ get_training_data = function(country,
            # combine
            team_info = rbind(team1_info, team2_info)
 
-           # join with group_wide_team
-           group_wide_team_performance = dplyr::left_join(team_info, group_wide_team)
+           # join home info with team_info
+           team_info_home = dplyr::left_join(team_info, dplyr::select(group_wide_team, c("Squad", "Home")))
+           # subtract home - away
+           team_info_subtract = team_info_home[which(team_info_home$Home == 1), -c(colnames(team_info_home) == "Squad")]-team_info_home[which(team_info_home$Home == 2),-c(colnames(team_info_home) == "Squad")]
+           team_info_subtract = dplyr::select(team_info_subtract, -Home)
 
            # drop unnessecary cols
-           group_wide_team_num = dplyr::select(group_wide_team_performance, -c("Team", "Squad", "Competition_Name", "Gender", "Country", "Season_End_Year", "Team_or_Opponent"))
+           group_wide_team_num = dplyr::select(group_wide_team, -c("Team", "Squad", "Competition_Name", "Gender", "Country", "Season_End_Year", "Team_or_Opponent"))
 
-           # make all cols num except the last
+           # make all cols num
            group_wide_team_num <- sapply(group_wide_team_num, as.numeric)
 
            # add small constant to all values to make sure that no divisions of 0 cause errors
            group_wide_team_num_constant = group_wide_team_num
-           #group_wide_team_num_constant = apply(group_wide_team_num, 2, function(x) x + 0.01)
+           group_wide_team_num_constant = apply(group_wide_team_num, 2, function(x) x + 0.01)
            group_wide_team_num_constant = as.data.frame(group_wide_team_num_constant)
 
-           # subtract row with Home == 1 by row with Home == 2
-           division = group_wide_team_num_constant[which(group_wide_team_num_constant$Home == 1),]-group_wide_team_num_constant[which(group_wide_team_num_constant$Home == 2),]
+           # divide row with Home == 1 by row with Home == 2
+           division = group_wide_team_num_constant[which(group_wide_team_num_constant$Home == 1.01),]/group_wide_team_num_constant[which(group_wide_team_num_constant$Home == 2.01),]
+
+           # add team_info_subtract
+           division = cbind(team_info_subtract, division, 2)
 
            # add GT
            division$Outcome = match_info_past$Outcome[which(match_info_past$MatchURL %in% z)]
@@ -405,6 +411,3 @@ get_training_data = function(country,
            ################################################### END LOOP
          })
 }
-
-########################### workflow
-get_training_data(country = "ENG", sex = "M", tier = "1st", season_end_year = "2023", scouting_period = "Last 365 Days")

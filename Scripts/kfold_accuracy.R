@@ -1,4 +1,3 @@
-
 k_fold_testing = function(path,
                           impute_method,
                           country,
@@ -330,12 +329,3 @@ k_fold_testing = function(path,
   ggsave(paste0(path, '/K_fold_testing/Score.jpg'))
 
 }
-
-############################# remove this later
-path = "./Output"
-impute_method = "median"
-country = "GER"
-sex = "M"
-tier = "1st"
-#############################
-k_fold_testing(path = "./Output", impute_method = "median", country = "GER", sex = "M", tier = "1st")
