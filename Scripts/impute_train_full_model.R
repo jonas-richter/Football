@@ -1,8 +1,8 @@
 impute_train_full_model = function(path = "./Output",
-                            impute_method = "median",
-                            country,
-                            sex,
-                            tier){
+                                   impute_method = "median",
+                                   country,
+                                   sex,
+                                   tier){
 
     # league subset for training and testing
     league_subset = ifelse(country == "GER" & sex =="M" & tier =="1st", 1,
@@ -93,20 +93,21 @@ impute_train_full_model = function(path = "./Output",
     ### Random Forest
     # train
     Outcome = training_c_impute$Outcome
-    Outcome_model = randomForest(x = dplyr::select(training_c_impute, -c(Outcome, Score)), y = Outcome)
+    Outcome_model = randomForest::randomForest(x = dplyr::select(training_c_impute, -c(Outcome, Score)), y = Outcome)
 
     # save model
     saveRDS(Outcome_model,file = paste0(path, '/Full_model/RF_trainFull.rds'))
 
 
-    ### Gradient boosting
+    ### Regression
     # train
     Score = training_c_impute$Score
-    data_xgboost = as.matrix(dplyr::select(training_c_impute, -c(Outcome, Score)))
-    Outcome_model = xgboost::xgboost(data = data_xgboost, label = training_c_impute$Score, max.depth = 3, eta = 1, nthread = 7, nrounds  = 1, verbose = 1)
+    #data_xgboost = as.matrix(dplyr::select(training_c_impute, -c(Outcome, Score)))
+    #Outcome_model = xgboost::xgboost(data = data_xgboost, label = training_c_impute$Score, max.depth = 3, eta = 0.5, nthread = 7, nrounds  = 1, verbose = 1)
+    Outcome_model = randomForest::randomForest(x = dplyr::select(training_c_impute, -c(Outcome, Score)), y = training_c_impute$Score)
 
     # save model
-    saveRDS(Outcome_model,file = paste0(path, '/Full_model/xgboost_trainFull.rds'))
+    saveRDS(Outcome_model,file = paste0(path, '/Full_model/RF_regression_trainFull.rds'))
 
 
     ### naivebayes

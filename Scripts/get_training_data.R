@@ -1,22 +1,21 @@
-library(worldfootballR)
-library(tidyverse)
-library(dplyr)
-
 get_training_data = function(country,
                              sex,
                              tier,
                              season_end_year,
                              match_urls = NULL,
-                             scouting_period = "Last 365 Days",
+                             scouting_period,
                              path = "./Output"){
 
+  # create dir
+  dir.create(paste0(path, "/Training_data"))
 
   ## get match URLs
   if(is.null(match_urls)){
     match_urls = worldfootballR::fb_match_urls(country = country, gender = sex, tier = tier, season_end_year = season_end_year)
   }
 
-  ## remove match urls which are already in training data
+  # remove match urls which are already in training data
+  if(length(dir(paste0(path, "/Training_data/"))) > 0){
   # read data
   temp = list.files(path = paste0(path, "/Training_data/") ,pattern="*.csv")
   training = lapply(paste0(path, "/Training_data/", temp), read.csv)
@@ -26,6 +25,7 @@ get_training_data = function(country,
   training_c = dplyr::select(.data = training_c, -X)
   # remove URLs from match_urls which are already present in training data
   match_urls = match_urls[!(match_urls %in% training_c$MatchURL)]
+  }
 
   ################################################### START LOOP
   lapply(match_urls,
@@ -67,7 +67,7 @@ get_training_data = function(country,
            match_info$Outcome = ifelse(match_info$HomeGoals > match_info$AwayGoals, "win",
                                        ifelse(match_info$HomeGoals < match_info$AwayGoals, "loss", "draw"))
            # make numeric outcome column
-           match_info = mutate(.data = match_info, Score = HomeGoals - AwayGoals)
+           match_info = dplyr::mutate(.data = match_info, Score = HomeGoals - AwayGoals)
 
            # subset to past matches
            match_info_past = match_info[!as.vector(sapply(match_info$HomeGoals,is.na)), ]
@@ -76,7 +76,7 @@ get_training_data = function(country,
            ## Player URLs
 
            # get player urls from ALL players
-           mapped_players = player_dictionary_mapping()
+           mapped_players = worldfootballR::player_dictionary_mapping()
 
            # get player URLs ONLY for players of a certain match
            mapped_players_match = mapped_players[mapped_players$PlayerFBref %in% lineups[lineups$Min > 30,]$Player_Name, ] # players must have played at least 30 minutes
@@ -111,7 +111,7 @@ get_training_data = function(country,
            scouting_FB_365 = dplyr::left_join(scouting_FB_365, dplyr::select(lineups, c(Team, Player_Name)))
 
            # drop some cols
-           scouting_FB_365 = select(scouting_FB_365, -c("StatGroup", "scouting_period"))
+           scouting_FB_365 = dplyr::select(scouting_FB_365, -c("StatGroup", "scouting_period"))
 
 
            ### Player statistics TM
@@ -150,7 +150,7 @@ get_training_data = function(country,
            scouting_TM_c = scouting_TM_c[!as.vector(sapply(scouting_TM_c$Player,is.na)), ]
 
            # join TM and FBRef info
-           scouting_FB_TM = left_join(scouting_FB_365, scouting_TM_c)
+           scouting_FB_TM = dplyr::left_join(scouting_FB_365, scouting_TM_c)
 
            # Remove players which had no proper match between TM and FBRef
            scouting_FB_TM_clubs = na.omit(scouting_FB_TM)
@@ -170,10 +170,10 @@ get_training_data = function(country,
                               height_mean = mean(height),
                               player_valuation_mean = mean(player_valuation),
                               max_player_valuation_mean = mean(max_player_valuation))
-           group = ungroup(group)
+           group = dplyr::ungroup(group)
 
            # this is how to make the df wide
-           group_wide = pivot_wider(data = group, names_from = c(Versus, Statistic),
+           group_wide = tidyr::pivot_wider(data = group, names_from = c(Versus, Statistic),
                                     values_from = c(4:ncol(group)))
 
 
@@ -251,7 +251,7 @@ get_training_data = function(country,
            match_info_subset1_away = match_info_subset1_away[order(as.Date(match_info_subset1_away$Date, format="%Y-%m-%d")),]
 
            # bind rows
-           match_info_subset1_c = bind_rows(match_info_subset1_home,match_info_subset1_away)
+           match_info_subset1_c = dplyr::bind_rows(match_info_subset1_home,match_info_subset1_away)
            match_info_subset1_c = match_info_subset1_c[order(as.Date(match_info_subset1_c$Date, format="%Y-%m-%d")),]
 
            # add points

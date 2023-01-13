@@ -1,12 +1,8 @@
-library(worldfootballR)
-library(tidyverse)
-library(dplyr)
-
 get_matchday_data = function(country,
                              sex,
                              tier,
                              season_end_year,
-                             scouting_period = "Last 365 Days",
+                             scouting_period,
                              path = "./Output"){
 
 # get match URLs
@@ -45,7 +41,7 @@ match_info[,c("Wk", "HomeGoals", "Home_xG", "AwayGoals", "Away_xG")] <- sapply(m
 match_info$Outcome = ifelse(match_info$HomeGoals > match_info$AwayGoals, "win",
                             ifelse(match_info$HomeGoals < match_info$AwayGoals, "loss", "draw"))
 # make numeric outcome column
-match_info = mutate(.data = match_info, Score = HomeGoals - AwayGoals)
+match_info = dplyr::mutate(.data = match_info, Score = HomeGoals - AwayGoals)
 
 # subset to past matches
 match_info_past = match_info[!as.vector(sapply(match_info$HomeGoals,is.na)), ]
@@ -53,15 +49,21 @@ match_info_past = match_info[!as.vector(sapply(match_info$HomeGoals,is.na)), ]
 # sort df by date
 match_info_date = match_info[order(as.Date(match_info$Date, format="%Y-%m-%d")),]
 
-# get the next matchday
-matchday = min(which(as.vector(sapply(match_info_date$HomeGoals,is.na))))
-match_info_matchday = match_info_date[seq(matchday, matchday+8), ]
+## get the next matchday
+# get todays date
+today = as.Date(stringr::str_extract(string = Sys.time(), pattern = ".*-.*-.."))
+# how many rows have dates smaller than today
+pastdays = min(which(as.vector(sapply(match_info_date$Date < today,isFALSE))))
+# get matchday info
+gamecount = if(country == "GER"){8} else if(country == "ENG"){9}
+match_info_matchday = match_info_date[seq(pastdays,pastdays+gamecount), ]
 
 # get player urls from ALL players
-mapped_players = player_dictionary_mapping()
+mapped_players = worldfootballR::player_dictionary_mapping()
 
 ## get lineup of both teams from prior match
-match_info_matchday_past = match_info_date[seq(matchday-1, matchday-9), ]
+gamecount = if(country == "GER"){9} else if(country == "ENG"){10}
+match_info_matchday_past = match_info_date[seq(pastdays-gamecount,pastdays-1), ]
 
 lapply(match_info_matchday$MatchURL,
        function(z) {
@@ -74,9 +76,37 @@ url_team2 = match_info_matchday_past[match_info_matchday_past$Home %in% away | m
 # get lineups
 lineups_team1 = worldfootballR::fb_match_lineups(match_url = url_team1, time_pause = 2)
 lineups_team2 = worldfootballR::fb_match_lineups(match_url = url_team2, time_pause = 2)
+
+# Rename few teams (if present)
+lineups_team1$Team[lineups_team1$Team == "M'Gladbach"] <- "Mönchengladbach"
+lineups_team1$Team[lineups_team1$Team == "Nott'ham Forest"] <- "Nottingham Forest"
+lineups_team1$Team[lineups_team1$Team == "Tottenham"] <- "Tottenham Hotspur"
+lineups_team1$Team[lineups_team1$Team == "Newcastle Utd"] <- "Newcastle United"
+lineups_team1$Team[lineups_team1$Team == "Manchester Utd"] <- "Manchester United"
+lineups_team1$Team[lineups_team1$Team == "Wolves"] <- "Wolverhamptom Wanderers"
+lineups_team1$Team[lineups_team1$Team == "West Ham"] <- "West Ham United"
+lineups_team1$Team[lineups_team1$Team == "Bayer Leverkusen"] <- "Leverkusen"
+
+lineups_team2$Team[lineups_team2$Team == "M'Gladbach"] <- "Mönchengladbach"
+lineups_team2$Team[lineups_team2$Team == "Nott'ham Forest"] <- "Nottingham Forest"
+lineups_team2$Team[lineups_team2$Team == "Tottenham"] <- "Tottenham Hotspur"
+lineups_team2$Team[lineups_team2$Team == "Newcastle Utd"] <- "Newcastle United"
+lineups_team2$Team[lineups_team2$Team == "Manchester Utd"] <- "Manchester United"
+lineups_team2$Team[lineups_team2$Team == "Wolves"] <- "Wolverhamptom Wanderers"
+lineups_team2$Team[lineups_team2$Team == "West Ham"] <- "West Ham United"
+lineups_team2$Team[lineups_team2$Team == "Bayer Leverkusen"] <- "Leverkusen"
+
 # filter for lineups of respective teams
-lineups_home = lineups_team1[lineups_team1$Team %in% home, ]
-lineups_away = lineups_team2[lineups_team2$Team %in% away, ]
+if(home %in% lineups_team1$Team){
+  lineups_home = lineups_team1[lineups_team1$Team %in% home, ]
+} else {
+  lineups_home = lineups_team1[lineups_team1$Team %in% lineups_team1$Team[min(which(sapply(lineups_team1$Team, function(x) agrepl(x, home, max.distance = 0.22))))], ]
+}
+if(away %in% lineups_team2$Team){
+  lineups_away = lineups_team2[lineups_team2$Team %in% away, ]
+} else {
+  lineups_away = lineups_team2[lineups_team2$Team %in% lineups_team2$Team[min(which(sapply(lineups_team2$Team, function(x) agrepl(x, away, max.distance = 0.22))))], ]
+}
 # adapt Home_Away information to current matchday
 lineups_home$Home_Away = "Home"
 lineups_away$Home_Away = "Away"
@@ -112,7 +142,7 @@ colnames(scouting_FB_365)[which(names(scouting_FB_365) == "Player")] <- "Player_
 scouting_FB_365 = dplyr::left_join(scouting_FB_365, dplyr::select(lineups_c, c(Team, Player_Name)))
 
 # drop some cols
-scouting_FB_365 = select(scouting_FB_365, -c("StatGroup", "scouting_period"))
+scouting_FB_365 = dplyr::select(scouting_FB_365, -c("StatGroup", "scouting_period"))
 
 ### Player statistics TM
 
@@ -150,7 +180,7 @@ scouting_TM_c$Player_Name = FBRef_Player_names
 scouting_TM_c = scouting_TM_c[!as.vector(sapply(scouting_TM_c$Player,is.na)), ]
 
 # join TM and FBRef info
-scouting_FB_TM = left_join(scouting_FB_365, scouting_TM_c)
+scouting_FB_TM = dplyr::left_join(scouting_FB_365, scouting_TM_c)
 
 # Remove players which had no proper match between TM and FBRef
 scouting_FB_TM_clubs = na.omit(scouting_FB_TM)
@@ -170,10 +200,10 @@ group = scouting_FB_TM_clubs %>%
                    height_mean = mean(height),
                    player_valuation_mean = mean(player_valuation),
                    max_player_valuation_mean = mean(max_player_valuation))
-group = ungroup(group)
+group = dplyr::ungroup(group)
 
 # this is how to make the df wide
-group_wide = pivot_wider(data = group, names_from = c(Versus, Statistic),
+group_wide = tidyr::pivot_wider(data = group, names_from = c(Versus, Statistic),
                          values_from = c(4:ncol(group)))
 
 
@@ -251,7 +281,7 @@ match_info_subset1_away$Points = ifelse(match_info_subset1_away$HomeGoals < matc
 match_info_subset1_away = match_info_subset1_away[order(as.Date(match_info_subset1_away$Date, format="%Y-%m-%d")),]
 
 # bind rows
-match_info_subset1_c = bind_rows(match_info_subset1_home,match_info_subset1_away)
+match_info_subset1_c = dplyr::bind_rows(match_info_subset1_home,match_info_subset1_away)
 match_info_subset1_c = match_info_subset1_c[order(as.Date(match_info_subset1_c$Date, format="%Y-%m-%d")),]
 
 # add points
@@ -307,7 +337,7 @@ match_info_subset2_away$Points = ifelse(match_info_subset2_away$HomeGoals < matc
 match_info_subset2_away = match_info_subset2_away[order(as.Date(match_info_subset2_away$Date, format="%Y-%m-%d")),]
 
 # bind rows
-match_info_subset2_c = bind_rows(match_info_subset2_home,match_info_subset2_away)
+match_info_subset2_c = dplyr::bind_rows(match_info_subset2_home,match_info_subset2_away)
 match_info_subset2_c = match_info_subset2_c[order(as.Date(match_info_subset2_c$Date, format="%Y-%m-%d")),]
 
 # add points

@@ -1,2 +1,2 @@
-"","accuracy_RF_mean","accuracy_naivebayes_mean","train_rmse_xgboost_mean"
-"1",0.509508570254789,0.466713094607709,1.28178124463298
+"","accuracy_RF_mean","accuracy_naivebayes_mean","test_rmse_RF_regression_mean"
+"1",0.518627450980392,0.491764705882353,1.85177448323244

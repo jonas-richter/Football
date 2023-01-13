@@ -4,7 +4,7 @@ predict_matchday = function(path = "./Output",
 # read models
 naivebayes = readRDS(paste0(path, "/Full_model/naivebayes_trainFull.rds"))
 RF = readRDS(paste0(path, "/Full_model/RF_trainFull.rds"))
-xgboost = readRDS(paste0(path, "/Full_model/xgboost_trainFull.rds"))
+RF_regression = readRDS(paste0(path, "/Full_model/RF_regression_trainFull.rds"))
 
 # read matchday data
 temp = list.files(path = paste0(path, "/Matchday_data/") ,pattern="*.csv")
@@ -65,8 +65,8 @@ if(impute_method == "median"){
 predictions_RF = predict(RF, matchday_imputed)
 # naivebayes
 predictions_naivebayes = predict(naivebayes, matchday_imputed)
-# xgboost
-predictions_xgboost = predict(xgboost, as.matrix(matchday_imputed))
+# RF_regression
+predictions_RF_regression = predict(RF_regression, as.matrix(matchday_imputed))
 
 ## Write prediction data
 dir.create(paste0(path, "/Matchday_data/Prediction"))
@@ -74,6 +74,6 @@ dir.create(paste0(path, "/Matchday_data/Prediction"))
 predictions = data.frame(match = stringr::str_remove(matchday_c$MatchURL, pattern = ".*/"),
                          RF = predictions_RF,
                          naivebayes = predictions_naivebayes,
-                         xgboost = predictions_xgboost)
+                         RF_regression = predictions_RF_regression)
 write.csv(predictions, paste0(path, "/Matchday_data/Prediction/prediction.csv"))
 }
