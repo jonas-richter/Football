@@ -6,6 +6,9 @@ get_training_data = function(country,
                              scouting_period,
                              path = "./Output"){
 
+  # get scout_report function
+  source("./Scripts/scout_report.R")
+
   # create dir
   dir.create(paste0(path, "/Training_data"))
 
@@ -89,7 +92,7 @@ get_training_data = function(country,
            scouting_FB_fun = function(x) {
              return(
                tryCatch(
-                 worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2),
+                 scout_report(player_url = x, pos_versus = "primary", time_pause = 2),
                  error=function(e) NULL))
            }
 

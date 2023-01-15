@@ -4,6 +4,8 @@ get_matchday_data = function(country,
                              season_end_year,
                              scouting_period,
                              path = "./Output"){
+# get scout_report function
+source("./Scripts/scout_report.R")
 
 # get match URLs
 match_urls = worldfootballR::fb_match_urls(country = country, gender = sex, tier = tier, season_end_year = season_end_year)
@@ -121,7 +123,7 @@ mapped_players_match = mapped_players[mapped_players$PlayerFBref %in% lineups_c[
 scouting_FB_fun = function(x) {
   return(
     tryCatch(
-      worldfootballR::fb_player_scouting_report(player_url = x, pos_versus = "primary", time_pause = 2),
+      scout_report(player_url = x, pos_versus = "primary", time_pause = 2),
       error=function(e) NULL))
 }
 
