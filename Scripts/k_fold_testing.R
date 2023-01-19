@@ -6,7 +6,7 @@ k_fold_testing = function(path = "./Output",
                           k = 100){
   lapply(seq_len(100), function(s) {
     # run train/test split
-    train_test_split()
+    invisible(capture.output(train_test_split()))
 
     # league subset for training and testing
     league_subset = ifelse(country == "GER" & sex =="M" & tier =="1st", 1,
@@ -50,11 +50,21 @@ k_fold_testing = function(path = "./Output",
     training_test = read.csv(file = paste0(path, '/Training_data/train_test_split/GT_test.csv'))
     training_test = dplyr::select(training_test, -X)
 
+    # convert -Inf and Inf to NA
+    training_train[training_train == -Inf] <- NA
+    training_test[training_test == -Inf] <- NA
+    training_train[training_train == Inf] <- NA
+    training_test[training_test == Inf] <- NA
+
     # possibly subset by league/sex/tier
     if(league_subset <= 15){
       training_train = training_train[training_train$league %in% league_subset, ]
       training_test = training_test[training_test$league %in% league_subset, ]
     }
+
+    # print to console
+    print(table(training_train$Outcome))
+    print(table(training_test$Outcome))
 
     # convert Outcome to factor
     training_train$Outcome = as.factor(training_train$Outcome)

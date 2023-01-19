@@ -34,6 +34,12 @@ impute_train_full_model = function(path = "./Output",
     training_test = read.csv(file = paste0(path, '/Training_data/train_test_split/GT_test.csv'))
     training_test = dplyr::select(training_test, -X)
 
+    # convert -Inf and Inf to NA
+    training_train[training_train == -Inf] <- NA
+    training_test[training_test == -Inf] <- NA
+    training_train[training_train == Inf] <- NA
+    training_test[training_test == Inf] <- NA
+
     # possibly subset by league/sex/tier
     if(league_subset <= 15){
       training_train = training_train[training_train$league %in% league_subset, ]
