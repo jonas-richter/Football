@@ -1,4 +1,5 @@
 /Users/jrichter/Documents/Football/.Rhistory="8EB200BD"
+/Users/jrichter/Documents/Football/.gitignore="A9A9DBEB"
 /Users/jrichter/Documents/Football/Application/Apply_functions.R="50D920A6"
 /Users/jrichter/Documents/Football/Estimation/Estimation_odds.R="FB306B4D"
 /Users/jrichter/Documents/Football/Estimation/Estimation_odds_pca.R="FE80A101"
@@ -18,7 +19,6 @@
 /Users/jrichter/Documents/Football/Scripts/combine_training_data.R="34EC6A3E"
 /Users/jrichter/Documents/Football/Scripts/get_matchday_data.R="B99382D6"
 /Users/jrichter/Documents/Football/Scripts/get_training_data.R="702FACB2"
-/Users/jrichter/Documents/Football/Scripts/k_fold_testing.R="074B5275"
 /Users/jrichter/Documents/Football/Scripts/k_fold_testing_pca.R="F2BF1B36"
 /Users/jrichter/Documents/Football/Scripts/predict_matchday.R="A2333226"
 /Users/jrichter/Documents/Football/Scripts/scout_report.R="61F8CA53"

@@ -15,8 +15,7 @@ get_training_data(country = "ENG", sex = "M", tier = "1st", season_end_year = "2
 
 # kfold testing
 #combine_training_data()
-#k_fold_testing(country = "GER", sex = "M", tier = "1st", impute_method = "median", impute_with_training = T)
-#k_fold_testing_pca(country = "GER", sex = "M", tier = "1st", impute_method = "RF", impute_with_training = T, pca = F)
+#k_fold_testing_pca(country = "GER", sex = "M", tier = "1st", impute_method = "median", impute_with_training = T, pca = F)
 
 # train full models and predict next matchday
 #predict_matchday(impute_method = "median")
