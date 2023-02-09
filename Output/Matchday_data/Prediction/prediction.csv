@@ -1,10 +1,10 @@
-"","match","RF","naivebayes","RF_regression"
-"1","Bochum-vs-Hertha-BSC-History","win","loss",0.344366666666667
-"2","Dortmund-vs-Augsburg-History","win","win",1.8853
-"3","Eintracht-Frankfurt-vs-Schalke-04-History","win","win",2.3038
-"4","Freiburg-vs-Wolfsburg-History","loss","loss",-0.1915
-"5","Koln-vs-Werder-Bremen-History","win","win",0.0766333333333334
-"6","Leverkusen-vs-Monchengladbach-History","win","draw",0.9837
-"7","Mainz-05-vs-Stuttgart-History","win","win",-0.0366666666666667
-"8","RB-Leipzig-vs-Bayern-Munich-History","loss","loss",-0.962933333333334
-"9","Union-Berlin-vs-Hoffenheim-History","win","draw",0.486466666666667
+"","MatchURL","Home","Away","RF","naivebayes","RF_regression"
+"1","https://fbref.com/en/stathead/matchup/teams/add600ae/a224b06a/Dortmund-vs-Mainz-05-History","Mainz 05","Dortmund","loss","loss",-0.6702
+"2","https://fbref.com/en/stathead/matchup/teams/f0ac8ee6/a486e511/Eintracht-Frankfurt-vs-Freiburg-History","Freiburg","Eint Frankfurt","loss","loss",-0.137866666666667
+"3","https://fbref.com/en/stathead/matchup/teams/bc357bf7/054efa67/Koln-vs-Bayern-Munich-History","Bayern Munich","Köln","win","win",2.20053333333333
+"4","https://fbref.com/en/stathead/matchup/teams/c7a9f859/b42c6323/Leverkusen-vs-Bochum-History","Leverkusen","Bochum","win","win",1.92613333333333
+"5","https://fbref.com/en/stathead/matchup/teams/32f3ee20/0cdc4311/Monchengladbach-vs-Augsburg-History","Augsburg","M'Gladbach","loss","loss",-0.386466666666667
+"6","https://fbref.com/en/stathead/matchup/teams/c539e393/acbb6a5b/Schalke-04-vs-RB-Leipzig-History","Schalke 04","RB Leipzig","loss","loss",-1.36846666666667
+"7","https://fbref.com/en/stathead/matchup/teams/598bc722/033ea6b8/Stuttgart-vs-Hoffenheim-History","Hoffenheim","Stuttgart","win","win",0.728566666666667
+"8","https://fbref.com/en/stathead/matchup/teams/7a41008f/62add3bf/Union-Berlin-vs-Werder-Bremen-History","Werder Bremen","Union Berlin","loss","loss",-0.138933333333333
+"9","https://fbref.com/en/stathead/matchup/teams/4eaa11d7/2818f8bc/Wolfsburg-vs-Hertha-BSC-History","Hertha BSC","Wolfsburg","loss","loss",-0.3812

@@ -2,8 +2,7 @@ get_matchday_data = function(country,
                              sex,
                              tier,
                              season_end_year,
-                             scouting_period,
-                             path = "./Output"){
+                             scouting_period){
 # get scout_report function
 source("./Scripts/scout_report.R")
 
@@ -129,6 +128,7 @@ scouting_FB_fun = function(x) {
 
 # get statistics of players from certain match
 ## TAKES A LOT OF TIME
+library(dplyr)
 scouting_FB = lapply(mapped_players_match$UrlFBref, scouting_FB_fun)
 # remove empty data frames from list (from players without FBRef scouting report)
 scouting_FB_clean = scouting_FB[sapply(scouting_FB, function(x) !is.null(dim(x)[1]))]
@@ -291,27 +291,71 @@ team1_info = data.frame(Squad = group_wide_team$Squad[1],
                         Acc_points = sum(match_info_subset1_c$Points),
                         Acc_points_away = sum(match_info_subset1_away$Points),
                         Acc_points_home = sum(match_info_subset1_home$Points),
-                        Last_match = if(nrow(match_info_subset1_c) == 0){
-                          NA
+                        Last_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                          0
                         } else {
-                          tail(match_info_subset1_c, n = 1)$Points
+                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
                         },
-                        Last_2_match = if(nrow(match_info_subset1_c) <= 1) {
-                          NA
+                        Last_2_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
                         } else {
-                          sum(tail(match_info_subset1_c, n = 2)$Points)
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
                         },
-                        Last_3_match = if(nrow(match_info_subset1_c) <= 2) {
-                          NA
+                        Last_3_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 3) {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
                         } else {
-                          sum(tail(match_info_subset1_c, n = 3)$Points)
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"])
 
                         },
-                        Last_4_match = if(nrow(match_info_subset1_c) <= 3) {
-                          NA
+                        Last_4_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 3) {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 4) {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"])
                         } else {
-                          sum(tail(match_info_subset1_c, n = 4)$Points)
-
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 4, "Points"])
+                        },
+                        Last_5_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 3) {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
+                        } else if (which(match_info_subset1_c$MatchURL == z) == 4) {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"])
+                        } else if(which(match_info_subset1_c$MatchURL == z) == 5){
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 4, "Points"])
+                        } else {
+                          sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 4, "Points"],
+                              match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 5, "Points"])
                         }
 )
 
@@ -347,27 +391,71 @@ team2_info = data.frame(Squad = group_wide_team$Squad[2],
                         Acc_points = sum(match_info_subset2_c$Points),
                         Acc_points_away = sum(match_info_subset2_away$Points),
                         Acc_points_home = sum(match_info_subset2_home$Points),
-                        Last_match = if(nrow(match_info_subset2_c) == 0){
-                          NA
+                        Last_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                          0
                         } else {
-                          tail(match_info_subset2_c, n = 1)$Points
+                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
                         },
-                        Last_2_match = if(nrow(match_info_subset2_c) <= 1) {
-                          NA
+                        Last_2_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
                         } else {
-                          sum(tail(match_info_subset2_c, n = 2)$Points)
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
                         },
-                        Last_3_match = if(nrow(match_info_subset2_c) <= 2) {
-                          NA
+                        Last_3_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 3) {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
                         } else {
-                          sum(tail(match_info_subset2_c, n = 3)$Points)
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"])
 
                         },
-                        Last_4_match = if(nrow(match_info_subset2_c) <= 3) {
-                          NA
+                        Last_4_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 3) {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 4) {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"])
                         } else {
-                          sum(tail(match_info_subset2_c, n = 4)$Points)
-
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 4, "Points"])
+                        },
+                        Last_5_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                          0
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 3) {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
+                        } else if (which(match_info_subset2_c$MatchURL == z) == 4) {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"])
+                        } else if(which(match_info_subset2_c$MatchURL == z) == 5){
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 4, "Points"])
+                        } else {
+                          sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 4, "Points"],
+                              match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 5, "Points"])
                         }
 )
 
@@ -398,6 +486,7 @@ division = group_wide_team_num_constant[which(group_wide_team_num_constant$Home 
 division = cbind(team_info_subtract, division, 2)
 # add url as identifier
 division$MatchURL = z
+division$Wk = match_info_matchday$Wk[1]
 
 # add division and country identifier to df
 division$league = ifelse(country == "GER" & sex =="M" & tier =="1st", 1,
@@ -417,7 +506,7 @@ division$league = ifelse(country == "GER" & sex =="M" & tier =="1st", 1,
                                                                                                                     ifelse(country == "FRA" & sex =="M" & tier =="2nd", 15, 0)))))))))))))))
 
 # write df
-dir.create(path = paste0(path, "/Matchday_data"))
+dir.create(path = paste0("./Output", "/Matchday_data"))
 write.csv(x = division, file = paste0("./Output/Matchday_data/", stringr::str_remove(z, pattern = ".*/"), ".csv"))
 
 # print some output

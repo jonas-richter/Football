@@ -8,18 +8,15 @@ temp = list.files(path = "./Scripts/", pattern = "*.R")
 sapply(paste0("./Scripts/", temp), source)
 
 # get training data
-get_training_data(country = "ENG", sex = "M", tier = "1st", season_end_year = "2022", scouting_period = "2021-2022 Premier League")
+get_training_data(country = "ENG", sex = "M", tier = "1st", season_end_year = "2023", scouting_period = "2022-2023 Premier League")
 
-#get_matchday_data(country = "ENG", sex = "M", tier = "1st", season_end_year = "2023", scouting_period = "2022-2023 Premier League")
-
-# combine training data
-#combine_training_data()
+# get matchday data
+#get_matchday_data(country = "GER", sex = "M", tier = "1st", season_end_year = "2023", scouting_period = "2022-2023 Bundesliga")
 
 # kfold testing
-#k_fold_testing(country = "ENG", sex = "M", tier = "1st", impute_method = "median")
+#combine_training_data()
+#k_fold_testing(country = "GER", sex = "M", tier = "1st", impute_method = "median", impute_with_training = T)
+#k_fold_testing_pca(country = "GER", sex = "M", tier = "1st", impute_method = "RF", impute_with_training = T, pca = F)
 
-# train full model
-#impute_train_full_model(impute_method = "median", country = "GER", sex = "M", tier = "1st")
-
-# predict next matchday
+# train full models and predict next matchday
 #predict_matchday(impute_method = "median")

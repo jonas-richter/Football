@@ -3,14 +3,13 @@ get_training_data = function(country,
                              tier,
                              season_end_year,
                              match_urls = NULL,
-                             scouting_period,
-                             path = "./Output"){
+                             scouting_period){
 
   # get scout_report function
   source("./Scripts/scout_report.R")
 
   # create dir
-  dir.create(paste0(path, "/Training_data"))
+  dir.create(paste0("./Output", "/Training_data"))
 
   ## get match URLs
   if(is.null(match_urls)){
@@ -18,10 +17,10 @@ get_training_data = function(country,
   }
 
   # remove match urls which are already in training data
-  if(length(dir(paste0(path, "/Training_data/"))) > 0){
+  if(length(dir(paste0("./Output", "/Training_data"))) > 0){
   # read data
-  temp = list.files(path = paste0(path, "/Training_data/") ,pattern="*.csv")
-  training = lapply(paste0(path, "/Training_data/", temp), read.csv)
+  temp = list.files(path = paste0("./Output", "/Training_data/") ,pattern="*.csv")
+  training = lapply(paste0("./Output", "/Training_data/", temp), read.csv)
   # combine data
   training_c = plyr::rbind.fill(training)
   # drop unnecessary cols
@@ -98,6 +97,7 @@ get_training_data = function(country,
 
            # get statistics of players from certain match
            ## TAKES A LOT OF TIME
+           library(dplyr)
            scouting_FB = lapply(mapped_players_match$UrlFBref, scouting_FB_fun)
 
            # remove empty data frames from list (from players without FBRef scouting report)
@@ -257,38 +257,108 @@ get_training_data = function(country,
            match_info_subset1_c = dplyr::bind_rows(match_info_subset1_home,match_info_subset1_away)
            match_info_subset1_c = match_info_subset1_c[order(as.Date(match_info_subset1_c$Date, format="%Y-%m-%d")),]
 
-           # add points
+           ## add points
+           # which matchday is currently?
+           previous_Wk = match_info[match_info$MatchURL %in% z, ]$Wk - 1
+           if(previous_Wk != 0){
+           Wk_away = if(any(match_info_subset1_away$Wk %in% previous_Wk)){previous_Wk}else{
+             index = which.min(na.omit(match_info_subset1_away$Wk)[na.omit(match_info_subset1_away$Wk) < previous_Wk])
+             index = ifelse(length(index) == 0, 0, index)
+             if(index == 0){
+               Wk_away = 0
+             } else{
+               match_info_subset1_away$Wk[index]
+             }
+             }
+           Wk_home = if(any(match_info_subset1_home$Wk %in% previous_Wk)){previous_Wk}else{
+             index = which.min(na.omit(match_info_subset1_home$Wk)[na.omit(match_info_subset1_home$Wk) < previous_Wk])
+             index = ifelse(length(index) == 0, 0, index)
+             if(index == 0){
+               Wk_home = 0
+             } else{
+             match_info_subset1_home$Wk[index]
+             }
+           }
+          }else if(previous_Wk == 0){
+             Wk_away = 0
+             Wk_home = 0
+           }
+
            team1_info = data.frame(Squad = group_wide_team$Squad[1],
-                                   Acc_points = sum(match_info_subset1_c$Points),
-                                   Acc_points_away = sum(match_info_subset1_away$Points),
-                                   Acc_points_home = sum(match_info_subset1_home$Points),
+                                   Acc_points = if(which(match_info_subset1_c$MatchURL %in% z)-1 == 0){0}else{
+                                   sum(match_info_subset1_c[1:which(match_info_subset1_c$MatchURL %in% z)-1, ]$Points)
+                                   },
+                                   Acc_points_away = if(Wk_away <= 0){0} else {
+                                   sum(match_info_subset1_away[1:which(match_info_subset1_away$Wk %in% Wk_away), ]$Points)
+                                   },
+                                   Acc_points_home = if(Wk_home <= 0){0} else {
+                                   sum(match_info_subset1_home[1:which(match_info_subset1_home$Wk %in% Wk_home), ]$Points)
+                                   },
                                    Last_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
-                                     NA
+                                     0
                                    } else {
                                      match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
                                    },
-                                   Last_2_match = if(which(match_info_subset1_c$MatchURL == z) <= 2) {
-                                     NA
+                                   Last_2_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                                     match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
                                    } else {
                                      sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
                                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
                                    },
-                                   Last_3_match = if(which(match_info_subset1_c$MatchURL == z) <= 3) {
-                                     NA
+                                   Last_3_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                                     match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 3) {
+                                     sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
                                    } else {
                                      sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
                                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
                                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"])
 
                                    },
-                                   Last_4_match = if(which(match_info_subset1_c$MatchURL == z) <= 4) {
-                                     NA
+                                   Last_4_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                                     match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 3) {
+                                     sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 4) {
+                                     sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"])
                                    } else {
                                      sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
                                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
                                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"],
                                          match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 4, "Points"])
-
+                                   },
+                                   Last_5_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 2) {
+                                     match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"]
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 3) {
+                                     sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"])
+                                   } else if (which(match_info_subset1_c$MatchURL == z) == 4) {
+                                     sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"])
+                                   } else if(which(match_info_subset1_c$MatchURL == z) == 5){
+                                     sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 4, "Points"])
+                                   } else {
+                                     sum(match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 3, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 4, "Points"],
+                                         match_info_subset1_c[which(match_info_subset1_c$MatchURL == z) - 5, "Points"])
                                    }
            )
 
@@ -320,37 +390,106 @@ get_training_data = function(country,
            match_info_subset2_c = match_info_subset2_c[order(as.Date(match_info_subset2_c$Date, format="%Y-%m-%d")),]
 
            # add points
+           previous_Wk = match_info[match_info$MatchURL %in% z, ]$Wk - 1
+           if(previous_Wk != 0){
+             Wk_away = if(any(match_info_subset2_away$Wk %in% previous_Wk)){previous_Wk}else{
+               index = which.min(na.omit(match_info_subset2_away$Wk)[na.omit(match_info_subset2_away$Wk) < previous_Wk])
+               index = ifelse(length(index) == 0, 0, index)
+               if(index == 0){
+                 Wk_away = 0
+               } else{
+                 match_info_subset2_away$Wk[index]
+               }
+             }
+             Wk_home = if(any(match_info_subset2_home$Wk %in% previous_Wk)){previous_Wk}else{
+               index = which.min(na.omit(match_info_subset2_home$Wk)[na.omit(match_info_subset2_home$Wk) < previous_Wk])
+               index = ifelse(length(index) == 0, 0, index)
+               if(index == 0){
+                 Wk_home = 0
+               } else{
+                 match_info_subset2_home$Wk[index]
+               }
+             }
+           }else if(previous_Wk == 0){
+             Wk_away = 0
+             Wk_home = 0
+           }
+
            team2_info = data.frame(Squad = group_wide_team$Squad[2],
-                                   Acc_points = sum(match_info_subset2_c$Points),
-                                   Acc_points_away = sum(match_info_subset2_away$Points),
-                                   Acc_points_home = sum(match_info_subset2_home$Points),
+                                   Acc_points = if(which(match_info_subset2_c$MatchURL %in% z)-1 == 0){0}else{
+                                     sum(match_info_subset2_c[1:which(match_info_subset2_c$MatchURL %in% z)-1, ]$Points)
+                                   },
+                                   Acc_points_away = if(Wk_away <= 0){0} else {
+                                     sum(match_info_subset2_away[1:which(match_info_subset2_away$Wk %in% Wk_away), ]$Points)
+                                   },
+                                   Acc_points_home = if(Wk_home <= 0){0} else {
+                                     sum(match_info_subset2_home[1:which(match_info_subset2_home$Wk %in% Wk_home), ]$Points)
+                                   },
                                    Last_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
-                                     NA
+                                     0
                                    } else {
                                      match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
                                    },
-                                   Last_2_match = if(which(match_info_subset2_c$MatchURL == z) <= 2) {
-                                     NA
+                                   Last_2_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                                     match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
                                    } else {
                                      sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
                                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
                                    },
-                                   Last_3_match = if(which(match_info_subset2_c$MatchURL == z) <= 3) {
-                                     NA
+                                   Last_3_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                                     match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 3) {
+                                     sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
                                    } else {
                                      sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
                                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
                                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"])
 
                                    },
-                                   Last_4_match = if(which(match_info_subset2_c$MatchURL == z) <= 4) {
-                                     NA
+                                   Last_4_match = if(which(match_info_subset1_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                                     match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 3) {
+                                     sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 4) {
+                                     sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"])
                                    } else {
                                      sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
                                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
                                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"],
                                          match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 4, "Points"])
-
+                                   },
+                                   Last_5_match = if(which(match_info_subset2_c$MatchURL == z) == 1) {
+                                     0
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 2) {
+                                     match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"]
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 3) {
+                                     sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"])
+                                   } else if (which(match_info_subset2_c$MatchURL == z) == 4) {
+                                     sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"])
+                                   } else if(which(match_info_subset2_c$MatchURL == z) == 5){
+                                     sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 4, "Points"])
+                                   } else {
+                                     sum(match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 1, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 2, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 3, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 4, "Points"],
+                                         match_info_subset2_c[which(match_info_subset2_c$MatchURL == z) - 5, "Points"])
                                    }
            )
 
@@ -383,6 +522,7 @@ get_training_data = function(country,
            # add GT
            division$Outcome = match_info_past$Outcome[which(match_info_past$MatchURL %in% z)]
            division$Score = match_info_past$Score[which(match_info_past$MatchURL %in% z)]
+           division$Wk = match_info_past$Wk[which(match_info_past$MatchURL %in% z)]
 
            # add url as identifier
            division$MatchURL = z
@@ -405,7 +545,7 @@ get_training_data = function(country,
                                                                                                                                ifelse(country == "FRA" & sex =="M" & tier =="2nd", 15, 0)))))))))))))))
 
            # write df
-           dir.create(path = paste0(path, "/Training_data"))
+           dir.create(path = paste0("./Output", "/Training_data"))
            write.csv(x = division, file = paste0("./Output/Training_data/", stringr::str_remove(z, pattern = ".*/"), ".csv"))
 
            # print some output
